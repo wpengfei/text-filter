@@ -39,7 +39,7 @@ function scandir() {
             touch ${basedir}/"temp2"
 
             #sed = ${infile} | sed 'N;s/\n/:/' >> ${outputdir}/"temp1"
-            sed -n -e '/^[#]/d' -e '/^};.*/d' -e '/^asmlinkage.*/p' -e '/^void.*/p' -e '/^static.*/p' -e '/^int.*/p' -e '/^[{}]/p' -e 's/^.*__get_user/get_user/p' -e 's/^.*[^_]get_user/get_user/p' -e 's/^.*copy_from_user/copy_from_user/p' ${infile} >> ${basedir}/"temp2"
+            sed -n -e '/^[#]/d' -e '/^};.*/d' -e '/^asmlinkage.*/p' -e '/^const.*/p' -e '/^unsigned.*/p' -e '/^void.*/p' -e '/^static.*/p' -e '/^int.*/p' -e '/^[{}]/p' -e 's/^.*__get_user/get_user/p' -e 's/^.*[^_]get_user/get_user/p' -e 's/^.*copy_from_user/copy_from_user/p' -e 's/^.*case/case/p' -e 's/^.*default/default/p' ${infile} >> ${basedir}/"temp2"
             
             
             if test -e ${outfile}
@@ -53,21 +53,29 @@ function scandir() {
 
             fi
             #rm ${outputdir}/"temp1"
-            rm ${basedir}/"temp2"
+            #rm ${basedir}/"temp2"
 
         fi
     done
 }
 
-count = 0
-function further() {
-
+count=0
+function check_indentical() { 
+    
     for curfile in $(ls ${outputdir})
     do
-        python ${filter2dir} ${outputdir}/${curfile} ${output2dir}/${curfile}
-        curtime=$(date "+%H:%M:%S")
-        count=$[count+1]
-        echo [${curtime}][Phase 2]No.${count} :${outputdir}/${curfile}
+        if test -f ${outputdir}/${curfile}
+        then
+            python ${filter2dir} ${outputdir}/${curfile} ${output2dir}/${curfile}
+            curtime=$(date "+%H:%M:%S")
+            count=$[count+1]
+            echo [${curtime}][Phase 2]No.${count} :${outputdir}/${curfile}
+        elif test -d ${outputdir}/${curfile}
+        then
+            echo ${curfile} is dir!
+
+       
+        fi
     done
 
 }
@@ -84,7 +92,7 @@ then
     #phase 1
     scandir ${testdir} #$1 base dir of project
     #phase 2
-    further 
+    check_indentical 
 
 elif test -f $1
 then
