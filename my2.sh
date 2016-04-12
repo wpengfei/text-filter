@@ -1,6 +1,7 @@
 #!/bin/sh
 
-num=0
+num=0 # total file number
+non_num=0 #non .c or .h file number
 function scandir() {
     local cur_dir parent_dir workdir logfile infile  inc #must be defined first
     workdir=$1
@@ -58,6 +59,9 @@ function scandir() {
                     
 
                 rm ${basedir}/"temp2"
+            else
+                non_num=$[non_num+1]
+                echo [${curtime}][Phase 1]No.${num} : non .h or .c file number: ${non_num}
             fi
 
             
