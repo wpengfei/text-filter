@@ -28,32 +28,39 @@ function scandir() {
             scandir ${cur_dir}/${curfile} 
             cd ..
         else
-            
+
             infile=${cur_dir}/${curfile}
-           
+
+            filename=${curfile%.*}
+            extension=${curfile##*.} 
+            #echo filename is ${filename}
+            #echo extension is ${extension}
+
             curtime=$(date "+%H:%M:%S")
             num=$[num+1]
             echo [${curtime}][Phase 1]No.${num} :${infile}
 
-            #touch ${basedir}/"temp1"
-            touch ${basedir}/"temp2"
-
-            #sed = ${infile} | sed 'N;s/\n/:/' >> ${outputdir}/"temp1"
-            sed -n -e '/^[#]/d' -e '/^};.*/d' -e '/^asmlinkage.*/p' -e '/^const.*/p' -e '/^unsigned.*/p' -e '/^void.*/p' -e '/^static.*/p' -e '/^int.*/p' -e '/^[{}]/p' -e 's/^.*__get_user/get_user/p' -e 's/^.*[^_]get_user/get_user/p' -e 's/^.*copy_from_user/copy_from_user/p' -e 's/^.*case/case/p' -e 's/^.*default/default/p' ${infile} >> ${basedir}/"temp2"
-            
-            
-            if test -e ${outfile}
+            if test ${extension} = "c" -o ${extension} = "h"
             then
-                #echo $curtime
-                python ${filterdir} ${basedir}/"temp2" ${outputdir}/${num}-${curfile} ${infile}
-                
-            else
-                outfile=${outputdir}/${curfile}
-                python ${pydir} ${basedir}/"temp2" ${outfile} ${infile}
+                touch ${basedir}/"temp2"
 
+                #sed = ${infile} | sed 'N;s/\n/:/' >> ${outputdir}/"temp1"
+                sed -n -e '/^[#]/d' -e '/^};.*/d' -e '/^asmlinkage.*/p' -e '/^inline.*/p' -e '/^const.*/p' -e '/^unsigned.*/p' -e '/^void.*/p' -e '/^static.*/p' -e '/^int.*/p' -e '/^[{}]/p' -e 's/^.*__get_user/get_user/p' -e 's/^.*[^_]get_user/get_user/p' -e 's/^.*copy_from_user/copy_from_user/p' -e 's/^.*case/case/p' -e 's/^.*default/default/p' ${infile} >> ${basedir}/"temp2"
+                
+                #all the output files sorted by numbers
+                python ${filterdir} ${basedir}/"temp2" ${outputdir}/${num}-${curfile} ${infile}
+
+                #copy candidate source files to specific location
+                if test -e ${outputdir}/${num}-${curfile}
+                then
+                    cp ${infile} ${sourcedir}/s-${num}-${curfile}
+                fi
+                    
+
+                rm ${basedir}/"temp2"
             fi
-            #rm ${outputdir}/"temp1"
-            #rm ${basedir}/"temp2"
+
+            
 
         fi
     done
@@ -88,6 +95,7 @@ then
     outputdir=$(pwd)/'output'
     output2dir=$(pwd)/'output2'
     testdir=$(pwd)/'test'
+    sourcedir=$(pwd)/'source'
 
     #phase 1
     scandir ${testdir} #$1 base dir of project

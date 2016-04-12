@@ -24,19 +24,22 @@ class Filter:
 		return open(self.outfile, "w+")
 
 	def identify(self, line):
-	 	if line.find("{") != -1 :
+	 
+	 	if line.find("get_user") == 0:
+	 		return "trans"
+	 	elif line.find("copy_from_user") == 0:
+	 		return "trans"
+	 	elif line.find("case") == 0 :
+	 		return "case"
+	 	elif line.find("default") == 0:
+	 		return "case"
+	 	elif line.find("{") == 0:
 	 		return "{"
-	 	elif line.find("}") != -1 :
+	 	elif line.find("}") == 0 :
 	 		return "}"
-	 	elif line.find("get_user") != -1 :
-	 		return "trans"
-	 	elif line.find("copy_from_user") != -1 :
-	 		return "trans"
-	 	elif line.find("case") != -1 :
-	 		return "case"
-	 	elif line.find("default") != -1 :
-	 		return "case"
 	 	elif  line == '\n' :
+	 		return "blank"
+	 	elif line.find(' ') == 0:
 	 		return "blank"
 	 	else:
 	 		return "funcDecl"
@@ -298,11 +301,15 @@ class Filter:
 					temp_funcDecl = line
 					self.curState = 1
 
+				if self.curState == 1 and vline == "funcDecl":
+					temp_funcDecl = line
+					self.curState = 1
+
 				elif self.curState == 1 and vline == "{":
 					temp_left = "{"
 					self.curState = 2
 				
-				elif self.curState == 1 and vline == "}":
+				elif self.curState == 2 and vline == "}":
 					self.curState = 0
 
 				elif self.curState == 2 and (vline == "trans" or vline == "case"):					
@@ -317,6 +324,8 @@ class Filter:
 						line = self.in_file_handler.readline()
 						vline = self.identify(line)
 						#print "while line: ", line
+						if not line:
+							break
 						if self.identify(line) == "}" :
 							self.curState = 0
 							#print "break"

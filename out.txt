@@ -1,15 +1,81 @@
 xx/xx
-int sg_scsi_ioctl(struct request_queue *q, struct gendisk *disk, fmode_t mode,
+unsigned long func3()
 {
-get_user(in_len, &sic->inlen))
-get_user(out_len, &sic->outlen))
-get_user(opcode, sic->data))
-copy_from_user(rq->cmd, sic->data, cmdlen))
-copy_from_user(buffer, sic->data + cmdlen, in_len))
+get_user();
+get_user();
+copy_from_user();
+case 2:
+get_user();
+case 4:
+get_user();
+get_user();
 }
-int scsi_cmd_ioctl(struct request_queue *q, struct gendisk *bd_disk, fmode_t mode,
+int func2()
 {
-case SG_EMULATED_HOST:
-copy_from_user(&hdr, arg, sizeof(hdr)))
-copy_from_user(&cgc, arg, sizeof(cgc)))
+get_user();
+copy_from_user();
+get_user();
+get_user();
+copy_from_user();
+}
+unsigned long func4()
+{
+get_user();
+case 1:
+get_user();
+copy_from_user();
+case 2:
+get_user();
+copy_from_user();
+copy_from_user();
+case 4:
+get_user();
+get_user();
+copy_from_user();
+default:
+get_user();
+}
+unsigned long func5()
+{
+case 1:
+get_user();
+copy_from_user();
+case 4:
+get_user();
+copy_from_user();
+default:
+get_user();
+get_user();
+}
+int func8()
+{
+copy_from_user();
+get_user();
+}
+unsigned long func9()
+{
+case 1:
+get_user();
+copy_from_user();
+copy_from_user();
+case 4:
+get_user();
+copy_from_user();
+case 5:
+get_user();
+get_user();
+get_user();
+get_user();
+}
+unsigned long func10()
+{
+case 5:
+get_user();
+get_user();
+}
+unsigned long func12()
+{
+default:
+get_user();
+get_user();
 }

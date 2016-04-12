@@ -1,5 +1,5 @@
 import sys
-print "-->arges are",sys.argv[1], sys.argv[2], sys.argv[3]  
+#print "-->arges are",sys.argv[1], sys.argv[2], sys.argv[3]  
 
 #0 start
 #1 got funcDecl
@@ -25,28 +25,32 @@ class Filter:
 	 	return open(self.outfile, "w+")
 
 	 def identify(self, line):
-	 	if line.find("{") != -1 :
-	 		#print "{"
-	 		return "{"
-	 	elif line.find("}") != -1 :
-	 		#print "}"
-	 		return "}"
-	 	elif line.find("get_user") != -1 :
+	 	#print 'line: ', line
+	 	if line.find("get_user") == 0:
 	 		#print "get_user"
 	 		return "trans"
-	 	elif line.find("copy_from_user") != -1 :
+	 	elif line.find("copy_from_user") == 0:
 	 		#print "copy_from_user"
 	 		return "trans"
-	 	elif line.find("case") != -1 :
+	 	elif line.find("case") == 0 :
 	 		#print "case"
 	 		return "case"
-	 	elif line.find("default") != -1 :
-	 		#print "case"
+	 	elif line.find("default") == 0:
+	 		#print "default"
 	 		return "case"
+	 	elif line.find("{") == 0:
+	 		#print "{"
+	 		return "{"
+	 	elif line.find("}") == 0 :
+	 		#print "}"
+	 		return "}"
 	 	elif  line == '\n' :
-	 		#print "blank line"
+	 		#print "blank"
 	 		return "blank"
-	 	else:
+	 	elif line.find(' ') == 0:
+	 		#print "empty"
+	 		return "blank"
+	 	else :
 	 		#print "funcDecl"
 	 		return "funcDecl"
 
@@ -55,18 +59,76 @@ class Filter:
 	 	if self.out_file_handler:
 	 		self.out_file_handler.close()
 
+	 def process_list(self, in_list):
+		l = len(in_list)
+		if in_list[0]['verify'] == "trans":
+			i = 1
+			last_case = 0
+			incase = False
+			while  i < l:
+				if in_list[i]['verify'] == "trans" and incase == False:
+					in_list[0]['flag'] = True
+					in_list[i]['flag'] = True
+				elif in_list[i]['verify'] == "case":
+					#print "--> ", in_list[i]
+					last_case = i
+					incase = True
+				elif in_list[i]['verify'] == "trans" and incase == True:
+					in_list[0]['flag'] = True
+					in_list[last_case]['flag'] = True
+					in_list[i]['flag'] = True
+					#print "-----> ", in_list[i]
+				else:
+					print 'false 1'
+
+				i = i + 1
+	
+
+		elif in_list[0]['verify'] == "case":
+			last_case = 0
+			case_counter = 0
+			i = 1
+			while i < l:
+				if in_list[i]['verify'] == "trans":
+					case_counter = case_counter + 1
+					if case_counter > 1:
+						j = last_case
+						while j < i + 1:
+							in_list[j]['flag'] = True
+							j = j + 1
+				elif in_list[i]['verify'] == "case":
+					last_case = i
+					case_counter = 0
+				else:
+					print 'false 2'
+
+				i = i + 1
+
+		else:
+			print 'false 3'
+
+		out_list = []
+		for i in in_list:
+			if i['flag'] == True:
+				out_list.append(i['line'])
+		#print "out:", out_list
+		return out_list
+
+
 	 def main(self):
 	 	self.in_file_handler = open(self.infile, "r")
 	 	temp_funcDecl = ""
 	 	temp_left = ""
 	 	temp_trans = ""
 	 	temp_case = ""
+	 	in_list = []
+		out_list = []
 	 	while True:
 			line = self.in_file_handler.readline()
 			#print "line: ",line
 			if line:				
 				vline = self.identify(line)
-				print "line: ",vline
+				#print "line: ",vline
 				if vline == "blank":
 					pass
 
@@ -78,6 +140,9 @@ class Filter:
 					temp_funcDecl = line
 					self.curState = 1
 
+				elif self.curState == 1  and  vline == "}": 
+					self.curState = 0 # half bracket
+
 				elif self.curState == 1 and vline == "{" :
 					temp_left = "{"
 					self.curState = 2  # got bracket
@@ -85,190 +150,66 @@ class Filter:
 				elif self.curState == 2 and vline == "}" :
 					self.curState = 0
 
-				elif self.curState == 2 and vline == "trans" :
-					temp_trans = line
-					self.curState = 3  #got single trans
+				elif self.curState == 2 and (vline == "trans" or vline == "case"):
+					self.curState = 3
+					#print "state 3\n"
+					dict_item = {}
+					dict_item['line'] = line
+					dict_item['verify'] = vline
+					dict_item['flag'] = False
+					in_list.append(dict_item)
+					while True:
+						line = self.in_file_handler.readline()
+						vline = self.identify(line)
+						#print "while line: ", line
+						if not line:
+							break
+							
+						if self.identify(line) == "}" :
+							self.curState = 0
+							#print "break"
+							break
 
-				elif self.curState == 3 and vline == "}" :
-					self.curState = 0
+						if self.curState == 3 and (vline == "trans" or vline == "case"):
+							dict_item = {}
+							dict_item['line'] = line
+							dict_item['verify'] = vline
+							dict_item['flag'] = False
+							in_list.append(dict_item)
+							#print "append ", vline
 
-				elif self.curState == 3 and vline == "trans" :
-					self.curState = 4	# got double trans and writing
-					if self.isOutfileOpen:
-						self.out_file_handler.write(temp_funcDecl)
-						self.out_file_handler.write(temp_left+'\n')
-						self.out_file_handler.write(temp_trans)
-						self.out_file_handler.write(line)
+					#print "inlist--->: ", in_list
+					#print "\n"
+
+					if len(in_list) > 1:
+						out_list = self.process_list(in_list)
+						#print "outlist=====>: ", out_list
+
+						if out_list:
+							if self.isOutfileOpen:
+								self.out_file_handler.write(temp_funcDecl)
+								self.out_file_handler.write(temp_left+'\n')
+								for str in out_list:
+									self.out_file_handler.write(str)
+								self.out_file_handler.write("}\n")
+							else:
+								self.out_file_handler = open(self.outfile, "w")
+								self.isOutfileOpen = True
+								self.out_file_handler.write(self.origin + '\n')
+								self.out_file_handler.write(temp_funcDecl)
+								self.out_file_handler.write(temp_left+"\n")
+								for str in out_list:
+									self.out_file_handler.write(str)
+								self.out_file_handler.write("}\n")
+							in_list = [] #reset buffers
+							out_list = []
+						else:
+							in_list = [] #reset buffers
+							out_list = []
 					else:
-						self.out_file_handler = open(self.outfile, "w")
-						self.isOutfileOpen = True
-						self.out_file_handler.write(self.origin + '\n')
-						self.out_file_handler.write(temp_funcDecl)
-						self.out_file_handler.write(temp_left+"\n")
-						self.out_file_handler.write(temp_trans)
-						self.out_file_handler.write(line)
-					
-				elif self.curState == 4 and vline == "trans" :
-					self.out_file_handler.write(line)
-					
-				elif self.curState == 4 and vline == "}" :
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 3 and vline == "case": #
-					self.curState = 5	#in switch case,
-					temp_case = line
-
-				elif self.curState == 5 and vline == "case": #
-					self.curState = 5	#in switch case,
-					temp_case = line
-
-				elif self.curState == 5 and vline == "}": #
-					self.curState = 0
-
-				elif self.curState == 5 and vline == "trans": #
-					self.curState = 6 # with a single transfer function already exsits before the case, writing
-					if self.isOutfileOpen:
-						self.out_file_handler.write(temp_funcDecl)
-						self.out_file_handler.write(temp_left+'\n')
-						self.out_file_handler.write(temp_trans)
-						self.out_file_handler.write(temp_case)
-						self.out_file_handler.write(line)
-					else:
-						self.out_file_handler = open(self.outfile, "w")
-						self.isOutfileOpen = True
-						self.out_file_handler.write(self.origin + '\n')
-						self.out_file_handler.write(temp_funcDecl)
-						self.out_file_handler.write(temp_left+"\n")
-						self.out_file_handler.write(temp_trans)
-						self.out_file_handler.write(temp_case)
-						self.out_file_handler.write(line)
-
-				elif self.curState == 6 and vline == "trans": #
-					self.out_file_handler.write(line)
-
-				elif self.curState == 6 and vline == "}": #
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 6 and vline == "case": #
-					temp_case = line
-					self.curState = 7	#in new switch case
-
-				elif self.curState == 7 and vline == "trans": #
-					self.out_file_handler.write(temp_case)
-					self.out_file_handler.write(line)
-					self.curState = 8
-				
-				elif self.curState == 7 and vline == "}": #
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 7 and vline == "case": #
-					temp_case = line
-
-				elif self.curState == 8 and vline == "trans": #
-					self.out_file_handler.write(line)
-				
-				elif self.curState == 8 and vline == "}": #
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 8 and vline == "case": #
-					temp_case = line
-					self.curState = 7	#in new switch case
-
-
-
-
-				########## no single trans function outside switch
-				elif self.curState == 2 and vline == "case":
-					self.curState = 9
-					temp_case = line
-
-				elif self.curState == 9 and vline == "case":
-					temp_case = line
-
-				elif self.curState == 9 and vline == "}":
-					self.curState = 0
-
-				elif self.curState == 9 and vline == "trans":
-					self.curState = 10
-					temp_trans = line
-
-				elif self.curState == 10 and vline == "}":
-					self.curState = 0
-
-				elif self.curState == 10 and vline == "case":
-					self.curState = 9
-					temp_case = line
-
-				elif self.curState == 10 and vline == "trans":
-					self.curState = 11 #writing, first wtime, should write decl as well
-					if self.isOutfileOpen:
-						self.out_file_handler.write(temp_funcDecl)
-						self.out_file_handler.write(temp_left+'\n')
-						self.out_file_handler.write(temp_case)
-						self.out_file_handler.write(temp_trans)	
-						self.out_file_handler.write(line)
-					else:
-						self.out_file_handler = open(self.outfile, "w")
-						self.isOutfileOpen = True
-						self.out_file_handler.write(self.origin + '\n')
-						self.out_file_handler.write(temp_funcDecl)
-						self.out_file_handler.write(temp_left+"\n")
-						self.out_file_handler.write(temp_case)
-						self.out_file_handler.write(temp_trans)
-						self.out_file_handler.write(line)
-
-				elif self.curState == 11 and vline == "trans":
-					self.out_file_handler.write(line)
-
-				elif self.curState == 11 and vline == "}":
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 11 and vline == "case":
-					self.curState = 12 ## new case, write case and trans, no decl
-					temp_case = line
-
-				elif self.curState == 12 and vline == "case":
-					temp_case = line
-
-				elif self.curState == 12 and vline == "}":
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 12 and vline == "trans":
-					self.curState = 13 # new case get single trans
-					temp_trans = line
-
-				elif self.curState == 13 and vline == "}":
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 13 and vline == "case":
-					self.curState = 12
-					temp_case = line
-
-				elif self.curState == 13 and vline == "trans":
-					self.curState = 14 # get double trans, writing
-					self.out_file_handler.write(temp_case)
-					self.out_file_handler.write(temp_trans)
-					self.out_file_handler.write(line)
-
-				elif self.curState == 14 and vline == "}":
-					self.out_file_handler.write("}\n")
-					self.curState = 0
-
-				elif self.curState == 14 and vline == "case":
-					self.curState = 12
-					temp_case = line
-
-				elif self.curState == 14 and vline == "trans":
-					self.out_file_handler.write(line)
-
-
+						in_list = [] #reset buffers
+						out_list = []
+						#print "list empty:state->5"
 				else:
 					#print  "# error #: " + line
 					pass
